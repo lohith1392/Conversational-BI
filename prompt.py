@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Set your API key
-os.environ['API_KEY'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZpamF5YWRpdHlhLnJhcGFrYUBzdHJhaXZlLmNvbSJ9.v8M1AYJM-nvheNafM6PndjYuIClOaK5uHgvi-2iAHqQ'
+os.environ['API_KEY'] = 'api_key'
 
 def generate_d3_code(csv_data, question):
     # Convert CSV data to a string format for the prompt
