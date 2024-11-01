@@ -1,16 +1,26 @@
 let chatHistory = [];
 let currentFile = null;
+let fileType = ''; // Track file type
 
 function handleFileSelect() {
-    const fileInput = document.getElementById('csvFile');
+    const fileInput = document.getElementById('dataFile');
     const fileNameSpan = document.getElementById('fileName');
     const chatMessages = document.getElementById('chatMessages');
-            
+
     if (fileInput.files[0]) {
-        currentFile = fileInput.files[0];
-        fileNameSpan.textContent = currentFile.name;
-                
-        // Add system message about file upload
+        const file = fileInput.files[0];
+        fileType = file.name.split('.').pop().toLowerCase(); // Get file extension
+        
+        // Check if file type is supported
+        if (!['csv', 'json', 'xlsx'].includes(fileType)) {
+            alert('Please upload a CSV, JSON, or Excel (.xlsx) file');
+            fileInput.value = '';
+            return;
+        }
+        
+        currentFile = file;
+        fileNameSpan.textContent = file.name;
+
         const fileMessage = document.createElement('div');
         fileMessage.className = 'message system-message';
         fileMessage.textContent = `File loaded: ${currentFile.name}`;
@@ -20,35 +30,29 @@ function handleFileSelect() {
 }
 
 function clearFile() {
-    const fileInput = document.getElementById('csvFile');
+    const fileInput = document.getElementById('dataFile');
     const fileNameSpan = document.getElementById('fileName');
     const chatMessages = document.getElementById('chatMessages');
     const visualizationDiv = document.getElementById('visualization');
-            
-    // Clear file input and filename display
+
     fileInput.value = '';
     fileNameSpan.textContent = '';
     currentFile = null;
-            
-    // Clear chat history
     chatHistory = [];
     chatMessages.innerHTML = `
         <div class="message system-message">
-        Welcome! Please upload a CSV file and ask questions about your data.
+        Welcome! Please upload a CSV, JSON, or Excel file and ask questions about your data.
         </div>
     `;
-            
-    // Clear visualization
-        visualizationDiv.innerHTML = '<div class="d3-Graphs"></div>';
-    }
+    visualizationDiv.innerHTML = '<div class="d3-Graphs"></div>';
+}
 
 async function processData() {
-    const fileInput = document.getElementById('csvFile');
     const questionInput = document.getElementById('question');
     const visualizationDiv = document.getElementById('visualization');
 
-    if (!fileInput.files[0]) {
-        alert('Please select a CSV file');
+    if (!currentFile) {
+        alert('Please select a CSV, JSON, or Excel file');
         return;
     }
 
@@ -57,16 +61,14 @@ async function processData() {
         return;
     }
 
-    // Create form data for the request
     const formData = new FormData();
-    formData.append('csv', fileInput.files[0]);
+    formData.append('data', currentFile);
     formData.append('question', questionInput.value);
+    formData.append('fileType', fileType); // Send file type to backend
 
     try {
-        // Clear previous visualization
         visualizationDiv.innerHTML = 'Loading...';
 
-        // Send request to backend
         const response = await fetch('http://localhost:5000/generate-visualization', {
             method: 'POST',
             body: formData
@@ -78,13 +80,7 @@ async function processData() {
             throw new Error(result.error);
         }
 
-        // Clear the visualization div
         visualizationDiv.innerHTML = '';
-
-        // Store the data globally
-        window.data = result.data;
-
-        // Create a script element with the generated D3 code
         const scriptElement = document.createElement('script');
         scriptElement.textContent = result.code;
         document.body.appendChild(scriptElement);
@@ -94,16 +90,3 @@ async function processData() {
         console.error('Error:', error);
     }
 }
-
-// Helper function to handle visualization errors
-function handleVisualizationError(error) {
-    const visualizationDiv = document.getElementById('visualization');
-    visualizationDiv.innerHTML = `Error creating visualization: ${error.message}`;
-    console.error('Visualization Error:', error);
-}
-
-// Add error handling for the global scope
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-    handleVisualizationError(error || new Error(msg));
-    return false;
-};

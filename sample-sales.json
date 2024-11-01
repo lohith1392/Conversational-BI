@@ -1,0 +1,25 @@
+{
+    "sales_data": [
+      {
+        "date": "2024-01-01",
+        "product": "Laptop",
+        "quantity": 15,
+        "revenue": 15000,
+        "region": "North"
+      },
+      {
+        "date": "2024-01-01",
+        "product": "Phone",
+        "quantity": 25,
+        "revenue": 12500,
+        "region": "South"
+      },
+      {
+        "date": "2024-01-02",
+        "product": "Tablet",
+        "quantity": 10,
+        "revenue": 5000,
+        "region": "East"
+      }
+    ]
+  }
