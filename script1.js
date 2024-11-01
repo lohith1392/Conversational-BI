@@ -1,85 +1,106 @@
-(()=>{
-    const width = 800;
-    const height = 600;
-    const margin = {top: 20, right: 30, bottom: 50, left: 70};
+(() => {
+    const width = 500,
+          height = 500,
+          radius = Math.min(width, height) / 2;
 
     const svg = d3.select('.d3-Graphs')
         .append('svg')
         .attr('width', width)
         .attr('height', height)
         .append('g')
-        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+        .attr('transform', `translate(${width / 2},${height / 2})`);
 
-    const tooltip = d3.select('.d3-Graphs')
-        .append('div')
-        .style('position', 'absolute')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '10px')
-        .style('display', 'none')
-        .style('color', 'black');
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-    d3.csv("loan_data_set.csv").then(data => {
-        data.forEach(d => {
-            d.LoanAmount = +d.LoanAmount;
-            d.ApplicantIncome = +d.ApplicantIncome;
-        });
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
 
-        const x = d3.scaleBand()
-            .domain(data.map(d => d.Education))
-            .range([0, width - margin.left - margin.right])
-            .padding(0.2);
+    const pie = d3.pie()
+        .value(d => d.count);
 
-        const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.LoanAmount || 0)])
-            .range([height - margin.top - margin.bottom, 0]);
+    if ('csv' === 'csv') {  // CSV is assumed for simplicity
+        d3.csv("Database Schema.csv").then(data => {
+            const regionCount = {};
 
-        svg.append('g')
-            .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
-            .call(d3.axisBottom(x));
-
-        svg.append('g')
-            .call(d3.axisLeft(y));
-
-        svg.selectAll('.bar')
-            .data(data)
-            .enter()
-            .append('rect')
-            .attr('class', 'bar')
-            .attr('x', d => x(d.Education))
-            .attr('y', d => y(d.LoanAmount || 0))
-            .attr('width', x.bandwidth())
-            .attr('height', d => height - margin.top - margin.bottom - y(d.LoanAmount || 0))
-            .on('mouseover', function(event, d) {
-                tooltip.style('display', 'block');
-                tooltip.html(`Education: ${d.Education}<br>Loan Amount: ${d.LoanAmount}`)
-                    .style('left', (event.pageX + 10) + 'px')
-                    .style('top', (event.pageY - 25) + 'px');
-            })
-            .on('mousemove', function(event) {
-                tooltip.style('left', (event.pageX + 10) + 'px')
-                    .style('top', (event.pageY - 25) + 'px');
-            })
-            .on('mouseleave', function() {
-                tooltip.style('display', 'none');
+            data.forEach(d => {
+                regionCount[d.Region] = (regionCount[d.Region] || 0) + 1;
             });
 
-        svg.append('text')
-            .attr('transform', `translate(${(width - margin.left - margin.right) / 2}, ${height - margin.bottom})`)
-            .style('text-anchor', 'middle')
-            .text('Education');
+            const pieData = Object.entries(regionCount).map(([region, count]) => {
+                return { region, count };
+            });
 
-        svg.append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 0 - margin.left)
-            .attr('x', 0 - (height / 2))
-            .attr('dy', '1em')
-            .style('text-anchor', 'middle')
-            .text('Loan Amount');
+            const arcs = svg.selectAll('.arc')
+                .data(pie(pieData))
+                .enter().append('g')
+                .attr('class', 'arc');
 
-    }).catch(error => {
-        console.error("Error loading the CSV file:", error);
-    });
-})()
+            arcs.append('path')
+                .attr('d', arc)
+                .attr('fill', d => color(d.data.region));
+
+            arcs.append('text')
+                .attr('transform', d => `translate(${arc.centroid(d)})`)
+                .attr('dy', '0.35em')
+                .text(d => d.data.region)
+                .attr('fill', 'black');
+
+            arcs.on('mouseover', (event, d) => {
+                d3.select(this).select('text')
+                    .text(`${d.data.region}: ${d.data.count}`);
+            }).on('mouseout', (event, d) => {
+                d3.select(this).select('text')
+                    .text(d.data.region);
+            });
+
+        }).catch(error => {
+            console.error("Error loading the CSV file:", error);
+        });
+    } else {
+        d3.json('Database Schema.csv.json').then(data => {
+            // Assume data is processed the same way as CSV with JSON compatible logic
+            const regionCount = {};
+
+            const processedData = Array.isArray(data)
+                ? data
+                : Array.isArray(data.data)
+                    ? data.data
+                    : Object.values(data);
+
+            processedData.forEach(d => {
+                regionCount[d.Region] = (regionCount[d.Region] || 0) + 1;
+            });
+
+            const pieData = Object.entries(regionCount).map(([region, count]) => {
+                return { region, count };
+            });
+
+            const arcs = svg.selectAll('.arc')
+                .data(pie(pieData))
+                .enter().append('g')
+                .attr('class', 'arc');
+
+            arcs.append('path')
+                .attr('d', arc)
+                .attr('fill', d => color(d.data.region));
+
+            arcs.append('text')
+                .attr('transform', d => `translate(${arc.centroid(d)})`)
+                .attr('dy', '0.35em')
+                .text(d => d.data.region)
+                .attr('fill', 'black');
+
+            arcs.on('mouseover', (event, d) => {
+                d3.select(this).select('text')
+                    .text(`${d.data.region}: ${d.data.count}`);
+            }).on('mouseout', (event, d) => {
+                d3.select(this).select('text')
+                    .text(d.data.region);
+            });
+
+        }).catch(error => {
+            console.error("Error loading the JSON file:", error);
+        });
+    }
+})();
